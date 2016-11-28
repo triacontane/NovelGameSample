@@ -1,5 +1,5 @@
 //=============================================================================
-// rpg_managers.js v1.3.1
+// rpg_managers.js v1.3.4
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -2059,17 +2059,17 @@ BattleManager.update = function() {
 
 BattleManager.updateEvent = function() {
     switch (this._phase) {
-    case 'start':
-    case 'turn':
-    case 'turnEnd':
-        if (this.isActionForced()) {
-            this.processForcedAction();
-            return true;
-        } else {
-            return this.updateEventMain();
-        }
+        case 'start':
+        case 'turn':
+        case 'turnEnd':
+            if (this.isActionForced()) {
+                this.processForcedAction();
+                return true;
+            } else {
+                return this.updateEventMain();
+            }
     }
-    return this.checkAbort();
+    return this.checkAbort2();
 };
 
 BattleManager.updateEventMain = function() {
@@ -2343,13 +2343,14 @@ BattleManager.invokeCounterAttack = function(subject, target) {
     action.setAttack();
     action.apply(subject);
     this._logWindow.displayCounter(target);
-    this._logWindow.displayActionResults(subject, subject);
+    this._logWindow.displayActionResults(target, subject);
 };
 
 BattleManager.invokeMagicReflection = function(subject, target) {
+	this._action._reflectionTarget = target;
     this._logWindow.displayReflection(target);
     this._action.apply(subject);
-    this._logWindow.displayActionResults(subject, subject);
+    this._logWindow.displayActionResults(target, subject);
 };
 
 BattleManager.applySubstitute = function(target) {
@@ -2411,6 +2412,15 @@ BattleManager.checkAbort = function() {
     if ($gameParty.isEmpty() || this.isAborting()) {
         this.processAbort();
         return true;
+    }
+    return false;
+};
+
+BattleManager.checkAbort2 = function() {
+    if ($gameParty.isEmpty() || this.isAborting()) {
+        SoundManager.playEscape();
+        this._escaped = true;
+        this.processAbort();
     }
     return false;
 };
@@ -2477,7 +2487,7 @@ BattleManager.updateBattleEnd = function() {
     if (this.isBattleTest()) {
         AudioManager.stopBgm();
         SceneManager.exit();
-    } else if ($gameParty.isAllDead()) {
+    } else if (!this._escaped && $gameParty.isAllDead()) {
         if (this._canLose) {
             $gameParty.reviveBattleMembers();
             SceneManager.pop();
